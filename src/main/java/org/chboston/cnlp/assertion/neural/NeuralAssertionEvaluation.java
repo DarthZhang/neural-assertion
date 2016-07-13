@@ -155,7 +155,7 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
     if(!this.skipWrite){
       AggregateBuilder builder = new AggregateBuilder();
 
-      builder.add(AnalysisEngineFactory.createEngineDescription(NeuralAssertionStatusAnalysisEngine.class,
+      builder.add(AnalysisEngineFactory.createEngineDescription(NeuralMultitaskAssertionStatusAnalysisEngine.class,
           CleartkAnnotator.PARAM_IS_TRAINING,
           true,
           DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
@@ -195,7 +195,7 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
     AnalysisEngineDescription assertionAttributeClearerAnnotator = AnalysisEngineFactory.createEngineDescription(ReferenceAnnotationsSystemAssertionClearer.class);
     builder.add(assertionAttributeClearerAnnotator);
     
-    builder.add(AnalysisEngineFactory.createEngineDescription(NeuralAssertionStatusAnalysisEngine.class,
+    builder.add(AnalysisEngineFactory.createEngineDescription(NeuralMultitaskAssertionStatusAnalysisEngine.class,
         CleartkAnnotator.PARAM_IS_TRAINING,
         false,
         GenericJarClassifierFactory.PARAM_CLASSIFIER_JAR_PATH,

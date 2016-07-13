@@ -47,7 +47,12 @@ def main(args):
         try:
             line = sys.stdin.readline().rstrip()
             if not line:
+#                 sys.stderr.write("Received empty line")
+#                 sys.stderr.flush()
                 break
+            
+#             sys.stderr.write("Received non-empty line")
+#             sys.stderr.flush()
             
             ## Need one extra dimension to parse liblinear string and will remove after
             feat_list = ctk_io.feature_string_to_list(line.rstrip(), input_dims)
@@ -67,10 +72,12 @@ def main(args):
             #sys.stderr.write("Read line %s" % line)
         except KeyboardInterrupt:
             sys.stderr.write("Caught keyboard interrupt\n")
+            sys.stderr.flush()
             break
         
         if line == '':
             sys.stderr.write("Encountered empty string so exiting\n")
+            sys.stderr.flush()
             break
     
         ## Convert the line into a feature vector and pass to model.
