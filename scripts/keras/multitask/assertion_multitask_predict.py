@@ -5,6 +5,7 @@ from keras.layers import Dense, Dropout, Activation
 from keras.optimizers import SGD
 from keras.utils import np_utils
 #from sklearn.datasets import load_svmlight_file
+import pickle
 import sklearn as sk
 import sklearn.cross_validation
 import numpy as np
@@ -21,8 +22,12 @@ def main(args):
 
     working_dir = args[0]
 
-    raw_outcomes, outcome_maps, lookup_map = ctk_io.read_outcome_maps(working_dir)
-    outcome_list = ctk_io.outcome_list(raw_outcomes)
+    script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
+    (feature_alphabet, outcome_maps, outcome_list) = pickle.load( open(os.path.join(script_dir, 'alphabets.pkl'), 'r' ) )
+    reverse_outcome_maps = ctk_io.reverse_outcome_maps(outcome_maps)
+    
+    #raw_outcomes, outcome_maps, lookup_map = ctk_io.read_outcome_maps(working_dir)
+    #outcome_list = ctk_io.outcome_list(raw_outcomes)
 
     ## Load models and weights:
     model_list = []
@@ -32,7 +37,7 @@ def main(args):
     model = model_from_json(open(os.path.join(working_dir, "model_0.json")).read())
     model.load_weights(os.path.join(working_dir, "model_0.h5"))       
     
-    input_dims = model.layers[0].input_shape[1] * model.layers[0].input_shape[2]
+    input_seq_len = model.layers[0].input_shape[1]
 
     while True:
         try:
@@ -41,11 +46,13 @@ def main(args):
                 break
             
             ## Need one extra dimension to parse liblinear string and will remove after
-            feat_list = ctk_io.feature_string_to_list(line.rstrip(), input_dims)
-            feats = np.array(feat_list)
-            feats = np.reshape(feats, (1, 11, input_dims / 11))            
+            feat_seq = ctk_io.string_to_feature_sequence(line, feature_alphabet, read_only=True)
+            ctk_io.fix_instance_len( feat_seq , input_seq_len)
+            feats = [feat_seq]
+            
             outcomes = []
-            out = model.predict(np.array(feats), batch_size=1, verbose=0)
+            out = model.predict( np.array(feats), batch_size=1, verbose=0)
+            
             for val in out:
                 if len(val[0]) == 1:
                     outcomes.append( 1 if val[0][0] > 0.5 else 0)
@@ -64,7 +71,7 @@ def main(args):
     
         ## Convert the line into a feature vector and pass to model.
         
-        out_str = ctk_io.convert_multi_output_to_string(outcomes, outcome_list, lookup_map, raw_outcomes)
+        out_str = ctk_io.convert_multi_output_to_string(outcomes, outcome_list, reverse_outcome_maps)
         
         print(out_str)       
         sys.stdout.flush()

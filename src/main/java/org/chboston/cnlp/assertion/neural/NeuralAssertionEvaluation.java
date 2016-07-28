@@ -14,6 +14,8 @@ import org.apache.ctakes.assertion.eval.AssertionEvaluation;
 import org.apache.ctakes.assertion.eval.AssertionEvaluation.ReferenceAnnotationsSystemAssertionClearer;
 import org.apache.ctakes.assertion.eval.AssertionEvaluation.ReferenceIdentifiedAnnotationsSystemToGoldCopier;
 import org.apache.ctakes.assertion.eval.XMIReader;
+import org.apache.ctakes.neural.KerasStringFeatureDataWriter;
+import org.apache.ctakes.neural.ScriptStringFeatureDataWriter;
 import org.apache.ctakes.typesystem.type.textsem.EntityMention;
 import org.apache.ctakes.typesystem.type.textsem.EventMention;
 import org.apache.ctakes.typesystem.type.textsem.IdentifiedAnnotation;
@@ -38,8 +40,6 @@ import org.cleartk.ml.jar.DefaultDataWriterFactory;
 import org.cleartk.ml.jar.DirectoryDataWriterFactory;
 import org.cleartk.ml.jar.GenericJarClassifierFactory;
 import org.cleartk.ml.jar.JarClassifierBuilder;
-import org.cleartk.ml.python.keras.KerasStringOutcomeDataWriter;
-import org.cleartk.ml.script.ScriptStringOutcomeDataWriter;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 
@@ -68,6 +68,12 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
         usage = "Skip writing the data and just train and evaluate",
         required = false)
     public boolean skipWrite=false;
+    
+    @Option(
+        name = "--baseline",
+        usage = "Run baseline individual systems rather than multi-task system",
+        required = false)
+    public boolean baseline=false;
   }
   
   public NeuralAssertionEvaluation(File baseDirectory) {
@@ -79,7 +85,9 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
     CmdLineParser parser = new CmdLineParser(options);
     parser.parseArgument(args);
 
-    NeuralAssertionEvaluation eval = new NeuralAssertionEvaluation(new File("target/models/neural/"));
+    File neuralDir = new File("target/models/neural");
+    File configDir = new File(neuralDir, options.baseline ? "singletask" : "multitask");
+    NeuralAssertionEvaluation eval = new NeuralAssertionEvaluation(configDir);
 
     List<File> trainFiles = new ArrayList<>();
     if(options.skipTrain){
@@ -100,28 +108,30 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
       }
     }
 
+    eval.baseline = options.baseline;
+    
     List<File> testFiles = new ArrayList<>();
     testFiles = Arrays.asList(options.testDirectory.listFiles());
 
     // if this is a new run make sure the models directory is empty:
     if(!(options.skipTrain || options.skipWrite)){
-      FileUtils.deleteDirectory(new File("target/models/neural/train_and_test/"));
+      FileUtils.deleteDirectory(new File(configDir, "train_and_test"));
     }
     
     Map<String, AnnotationStatisticsCompact<String>> stats = eval.trainAndTest(trainFiles, testFiles);
-    AssertionEvaluation.printScore(stats, "target/models/neural/");
+    AssertionEvaluation.printScore(stats, configDir.getAbsolutePath());
     double f1_ave = (stats.get("polarity").f1("-1") +
         stats.get("uncertainty").f1("1") +
         stats.get("generic").f1("true") +
         stats.get("conditional").f1("true") +
         stats.get("historyOf").f1("1")) / 5.0;
     
-    System.out.println("Polarity: " + stats.get("polarity").f1("-1"));
-    System.out.println("Uncertainty: " + stats.get("uncertainty").f1("1"));
-    System.out.println("Generic: " + stats.get("generic").f1("true"));
-    System.out.println("Conditional: " + stats.get("conditional").f1("true"));
-    System.out.println("HistoryOf: " + stats.get("historyOf").f1("1"));
-    System.out.println("Macro-f: " + f1_ave);
+    System.out.println(String.format("Polarity: %.3f",  stats.get("polarity").f1("-1")));
+    System.out.println(String.format("Uncertainty: %.3f", stats.get("uncertainty").f1("1")));
+    System.out.println(String.format("Generic: %.3f", stats.get("generic").f1("true")));
+    System.out.println(String.format("Conditional: %.3f", stats.get("conditional").f1("true")));
+    System.out.println(String.format("HistoryOf: %.3f", stats.get("historyOf").f1("1")));
+    System.out.println(String.format("Macro-f: %.3f\n " , f1_ave));
     
 //    for(Map.Entry<String, AnnotationStatisticsCompact<String>> stat : stats.entrySet()){
 //      System.out.println(stat.getKey());
@@ -132,7 +142,9 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
   public static final Logger logger = UIMAFramework.getLogger(NeuralAssertionEvaluation.class);
   public boolean skipWrite = false;
   public boolean skipTrain = false;
-  
+  public boolean baseline = false;
+  private String[] atts= new String[] {"polarity", "uncertainty", "conditional", "generic", "historyOf", "subject"}; 
+      
   @Override
   protected CollectionReader getCollectionReader(List<File> items)
       throws Exception {
@@ -155,23 +167,92 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
     if(!this.skipWrite){
       AggregateBuilder builder = new AggregateBuilder();
 
-      builder.add(AnalysisEngineFactory.createEngineDescription(NeuralMultitaskAssertionStatusAnalysisEngine.class,
-          CleartkAnnotator.PARAM_IS_TRAINING,
-          true,
-          DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
-          KerasStringOutcomeDataWriter.class,
-          DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
-          directory,
-          ScriptStringOutcomeDataWriter.PARAM_SCRIPT_DIRECTORY,
-          "scripts/keras/"
-          ) );
-
+      if(baseline){
+        builder.add(AnalysisEngineFactory.createEngineDescription(NeuralPolarityAnalysisEngine.class,
+            CleartkAnnotator.PARAM_IS_TRAINING,
+            true,
+            DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
+            KerasStringFeatureDataWriter.class,
+            DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
+            new File(directory, atts[0]),
+            ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
+            "scripts/keras/singletask/" + atts[0]
+            ) );
+        builder.add(AnalysisEngineFactory.createEngineDescription(NeuralUncertaintyAnalysisEngine.class,
+            CleartkAnnotator.PARAM_IS_TRAINING,
+            true,
+            DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
+            KerasStringFeatureDataWriter.class,
+            DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
+            new File(directory, atts[1]),
+            ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
+            "scripts/keras/singletask/" + atts[1]
+            ) );
+        builder.add(AnalysisEngineFactory.createEngineDescription(NeuralConditionalAnalysisEngine.class,
+            CleartkAnnotator.PARAM_IS_TRAINING,
+            true,
+            DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
+            KerasStringFeatureDataWriter.class,
+            DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
+            new File(directory, atts[2]),
+            ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
+            "scripts/keras/singletask/" + atts[2]
+            ) );
+        builder.add(AnalysisEngineFactory.createEngineDescription(NeuralGenericAnalysisEngine.class,
+            CleartkAnnotator.PARAM_IS_TRAINING,
+            true,
+            DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
+            KerasStringFeatureDataWriter.class,
+            DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
+            new File(directory, atts[3]),
+            ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
+            "scripts/keras/singletask/" + atts[3]
+            ) );
+        builder.add(AnalysisEngineFactory.createEngineDescription(NeuralHistoryOfAnalysisEngine.class,
+            CleartkAnnotator.PARAM_IS_TRAINING,
+            true,
+            DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
+            KerasStringFeatureDataWriter.class,
+            DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
+            new File(directory, atts[4]),
+            ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
+            "scripts/keras/singletask/" + atts[4]
+            ) );
+        builder.add(AnalysisEngineFactory.createEngineDescription(NeuralSubjectAnalysisEngine.class,
+            CleartkAnnotator.PARAM_IS_TRAINING,
+            true,
+            DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
+            KerasStringFeatureDataWriter.class,
+            DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
+            new File(directory, atts[5]),
+            ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
+            "scripts/keras/singletask/" + atts[5]
+            ) );
+      }else{
+        builder.add(AnalysisEngineFactory.createEngineDescription(NeuralMultitaskAssertionStatusAnalysisEngine.class,
+            CleartkAnnotator.PARAM_IS_TRAINING,
+            true,
+            DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
+            KerasStringFeatureDataWriter.class,
+            DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
+            directory,
+            ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
+            "scripts/keras/multitask/"
+            ) );
+      }
       // run the pipeline and write out the data
       SimplePipeline.runPipeline(collectionReader,  builder.createAggregateDescription());
     }
     
     // call the classifier builder to build a classifier and then package it into a jar
-    JarClassifierBuilder.trainAndPackage(directory);
+    if(this.baseline){
+      for(int i = 0; i < atts.length; i++){
+        String att = atts[i];
+        JarClassifierBuilder.trainAndPackage(new File(directory, att));
+      }
+    }else{
+      JarClassifierBuilder.trainAndPackage(directory);
+    }
   }
 
   @Override
@@ -195,12 +276,44 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
     AnalysisEngineDescription assertionAttributeClearerAnnotator = AnalysisEngineFactory.createEngineDescription(ReferenceAnnotationsSystemAssertionClearer.class);
     builder.add(assertionAttributeClearerAnnotator);
     
-    builder.add(AnalysisEngineFactory.createEngineDescription(NeuralMultitaskAssertionStatusAnalysisEngine.class,
-        CleartkAnnotator.PARAM_IS_TRAINING,
-        false,
-        GenericJarClassifierFactory.PARAM_CLASSIFIER_JAR_PATH,
-        new File(directory, "model.jar").getPath()));
-
+    if(this.baseline){
+      builder.add(AnalysisEngineFactory.createEngineDescription(NeuralPolarityAnalysisEngine.class,
+          CleartkAnnotator.PARAM_IS_TRAINING,
+          false,
+          GenericJarClassifierFactory.PARAM_CLASSIFIER_JAR_PATH,
+          new File(new File(directory, atts[0]), "model.jar").getPath()));
+      builder.add(AnalysisEngineFactory.createEngineDescription(NeuralUncertaintyAnalysisEngine.class,
+          CleartkAnnotator.PARAM_IS_TRAINING,
+          false,
+          GenericJarClassifierFactory.PARAM_CLASSIFIER_JAR_PATH,
+          new File(new File(directory, atts[1]), "model.jar").getPath()));
+      builder.add(AnalysisEngineFactory.createEngineDescription(NeuralConditionalAnalysisEngine.class,
+          CleartkAnnotator.PARAM_IS_TRAINING,
+          false,
+          GenericJarClassifierFactory.PARAM_CLASSIFIER_JAR_PATH,
+          new File(new File(directory, atts[2]), "model.jar").getPath()));
+      builder.add(AnalysisEngineFactory.createEngineDescription(NeuralGenericAnalysisEngine.class,
+          CleartkAnnotator.PARAM_IS_TRAINING,
+          false,
+          GenericJarClassifierFactory.PARAM_CLASSIFIER_JAR_PATH,
+          new File(new File(directory, atts[3]), "model.jar").getPath()));
+      builder.add(AnalysisEngineFactory.createEngineDescription(NeuralHistoryOfAnalysisEngine.class,
+          CleartkAnnotator.PARAM_IS_TRAINING,
+          false,
+          GenericJarClassifierFactory.PARAM_CLASSIFIER_JAR_PATH,
+          new File(new File(directory, atts[4]), "model.jar").getPath()));
+      builder.add(AnalysisEngineFactory.createEngineDescription(NeuralSubjectAnalysisEngine.class,
+          CleartkAnnotator.PARAM_IS_TRAINING,
+          false,
+          GenericJarClassifierFactory.PARAM_CLASSIFIER_JAR_PATH,
+          new File(new File(directory, atts[5]), "model.jar").getPath()));
+    }else{
+      builder.add(AnalysisEngineFactory.createEngineDescription(NeuralMultitaskAssertionStatusAnalysisEngine.class,
+          CleartkAnnotator.PARAM_IS_TRAINING,
+          false,
+          GenericJarClassifierFactory.PARAM_CLASSIFIER_JAR_PATH,
+          new File(directory, "model.jar").getPath()));
+    }
     JCasIterator casIter = new JCasIterator(collectionReader, builder.createAggregate());
     for ( ; casIter.hasNext();) {
       JCas jCas = casIter.next();

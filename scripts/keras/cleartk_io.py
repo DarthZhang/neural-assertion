@@ -5,6 +5,8 @@ import os, os.path
 import subprocess
 
 
+_UNK_STRING = "_UNK_OR_PADDING_"
+
 def string_label_to_label_vector(label_string, outcome_maps):    
     label_vec = []
     
@@ -158,7 +160,7 @@ def read_liblinear(dirname):
 
     return label_matrix, feat_matrix
     
-def convert_multi_output_to_string(outcomes, outcome_list, lookup_map, raw_outcomes):
+def convert_multi_output_to_string(outcomes, outcome_list, lookup_map):
     """Return the int value corresponding to the class implied by the
     set of outputs in the outcomes array."""
     str = ''
@@ -199,6 +201,109 @@ def feature_array_to_list( feats, length=-1 ):
     
     return f
     
+def read_token_sequence_data(working_dir):
+    feature_alphabet = {}
+    label_alphabet = {}
+    label_seq = []
+    instance_seq = []
+    
+    for line in open(os.path.join(working_dir, 'training-data.libsvm')):
+        (label, token_str) = split_sequence_line(line.strip())
+        label = label.strip()
+        
+        if not label in label_alphabet:
+            label_alphabet[label] = len(label_alphabet)
+        
+        label_ind = label_alphabet[label]
+        ## So that numpy turns it into a (n,1) 2d array instead of a (n,) 1d array
+        label_seq.append([label_ind])
+        
+        token_ind_seq = string_to_feature_sequence(token_str.strip(), feature_alphabet)
+        instance_seq.append(token_ind_seq)
+    
+    ## If we don't pad the shorter instances numpy conversion won't be able to turn it into a 2d array 
+    pad_instances(instance_seq)
+    
+    
+    return np.array(label_seq), label_alphabet, np.array(instance_seq), feature_alphabet
+        
+def read_multitask_token_sequence_data(working_dir):
+    feature_alphabet = {_UNK_STRING:0}
+    instance_seq = []
+    label_seq = []
+    outcome_maps = {}
+    outcome_list = []
+    
+    for line in open(os.path.join(working_dir, 'training-data.libsvm')):
+        (label, token_str) = split_sequence_line(line.strip())
+        label = label.strip()
+        
+        label_set = label.split("#")
+        instance_labels = []
+        
+        for outcome in label_set:
+            (outcome_type, value) = outcome.split("=")
+            if not outcome_type in outcome_maps:
+                outcome_maps[outcome_type] = {}
+                outcome_list.append(outcome_type)
+            
+            outcome_map = outcome_maps[outcome_type]
+            if value not in outcome_map:
+                outcome_map[value] = len(outcome_map)
+            
+            instance_labels.append( outcome_map[value] )
+        
+        label_seq.append(instance_labels)
+        instance_seq.append(string_to_feature_sequence(token_str, feature_alphabet))
+    
+    pad_instances(instance_seq)
+    
+    return np.array(label_seq), outcome_maps, outcome_list, np.array(instance_seq), feature_alphabet
+
+def pad_instances(instance_seq):    
+    max_len = max(map(len, instance_seq))
+    
+    for inst in instance_seq:
+        fix_instance_len(inst, max_len)
+
+def fix_instance_len(inst, req_len):
+    if len(inst) < req_len:
+        while len(inst) < req_len:
+            inst.append(0)
+    elif len(inst) > req_len:
+        ## Instance is too long -- can happen at test time -- truncate to the end of the sequence
+        inst = inst[-req_len:]
+    
+def split_sequence_line(line):
+    vals = line.split('|')
+    return vals[0], '|'.join(vals[1:])
+
+def string_to_feature_sequence(token_str, alphabet, read_only=False):
+    token_seq = token_str.split(" ")
+    token_ind_seq = [] # np.zeros( len(token_seq), dtype=np.int )
+    
+    for ind,token in enumerate(token_seq):
+            if not token in alphabet:
+                if not read_only:
+                    alphabet[token] = len(alphabet)
+                    token_ind_seq.append(alphabet[token])
+                else:
+                    token_ind_seq.append(0)
+            else:
+                token_ind_seq.append(alphabet[token])
+                
+    return token_ind_seq
+
+def reverse_outcome_maps(outcome_maps):
+    rev = {}
+    for label in outcome_maps.keys():
+        rev[label] = {}
+        ## Why is enumerate returning val, key instead of key, val? 
+        for key,val in outcome_maps[label].iteritems():
+            rev[label][val] = key
+    
+    return rev
+
 if __name__ == "__main__":
     (labels, feats) = read_multitask_liblinear('data_testing/multitask_assertion/train_and_test/')
     print("train[0][100] = %f" % feats[0][100])

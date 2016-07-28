@@ -12,9 +12,14 @@ import cleartk_io as ctk_io
 import nn_models
 import sys
 import os.path
+import pickle
 
-nb_epoch = 10
+nb_epoch = 20
 batch_size = 64
+filters = (64,)
+layers = (64,)
+embed_dim = 100
+width = 4
 
 def main(args):
     if len(args) < 1:
@@ -24,7 +29,7 @@ def main(args):
     working_dir = args[0]
     
     print("Reading data...")
-    Y, X = ctk_io.read_multitask_liblinear(working_dir) # ('data_testing/multitask_assertion/train_and_test') 
+    Y, outcome_map, outcome_list, X, feature_alphabet = ctk_io.read_multitask_token_sequence_data(working_dir) # ('data_testing/multitask_assertion/train_and_test') 
     
     print("Shape of X is %s and Y is %s" % (str(X.shape), str(Y.shape)))
     
@@ -35,13 +40,14 @@ def main(args):
     #print("Data has %d examples and dimension %d" % (num_examples, dimension) )
     #print("Output has %d dimensions" % (num_labels) )
 
-    X = np.reshape(X, (num_examples, 11, dimension / 11))
+    #X = np.reshape(X, (num_examples, 11, dimension / 11))
     
     Y_adj, indices = ctk_io.flatten_outputs(Y)
     stopper = nn_models.get_early_stopper()
     
     output_dims_list = []
     y_list = []
+    
     for i in range(len(indices)-1):
         label_dims = indices[i+1] - indices[i]
         output_dims_list.append(label_dims)
@@ -52,7 +58,9 @@ def main(args):
         
         print("Dimensions of label %d are %s" % (i, str(y_list[-1].shape) ) )
 
-    model = nn_models.get_multitask_cnn(X.shape, output_dims_list)
+    model = nn_models.get_multitask_cnn(X.shape, len(feature_alphabet), output_dims_list, conv_layers=filters, fc_layers=layers, 
+                                        embed_dim=embed_dim, filter_width=width)
+    #model = nn_models.get_multitask_mlp(X.shape, len(feature_alphabet), output_dims_list, fc_layers=layers, embed_dim=embed_dim)
     
     model.fit(X, y_list,
                   nb_epoch=nb_epoch,
@@ -66,6 +74,11 @@ def main(args):
     json_string = model.to_json()
     open(os.path.join(working_dir, 'model_0.json'), 'w').write(json_string)
     model.save_weights(os.path.join(working_dir, 'model_0.h5'), overwrite=True)
+    
+    script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
+    fn = open(os.path.join(script_dir, 'alphabets.pkl'), 'w')
+    pickle.dump( (feature_alphabet, outcome_map, outcome_list), fn)
+    fn.close()
     
     #print("This model has %d layers and layer 3 has %d weights" % (len(model.layers), len(model.layers[3].get_weights()) ) )
     #print("The weight of the first layer at index 50 is %f" % model.layers[3].get_weights()[50])
