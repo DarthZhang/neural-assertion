@@ -16,9 +16,9 @@ import pickle
 
 nb_epoch = 20
 batch_size = 64
-filters = (256,)
-layers = (256,)
-embed_dim = 100
+filters = (2048,)
+layers = (2048,)
+embed_dim = 25
 width = 3
 
 def main(args):
@@ -75,8 +75,8 @@ def main(args):
                   batch_size=batch_size,
                   verbose=1,
                   validation_split=0.2,
-                  callbacks=[stopper],
-                  class_weight=class_weights)
+                  callbacks=[stopper]) #,
+                  #class_weight=class_weights)
                   
     model.summary()
     
