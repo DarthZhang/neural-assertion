@@ -13,6 +13,7 @@ import nn_models
 import sys
 import os.path
 import pickle
+from zipfile import ZipFile
 
 nb_epoch = 20
 batch_size = 64
@@ -75,11 +76,16 @@ def main(args):
     open(os.path.join(working_dir, 'model_0.json'), 'w').write(json_string)
     model.save_weights(os.path.join(working_dir, 'model_0.h5'), overwrite=True)
     
-    script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
-    fn = open(os.path.join(script_dir, 'alphabets.pkl'), 'w')
+    #script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
+    fn = open(os.path.join(working_dir, 'alphabets.pkl'), 'w')
     pickle.dump( (feature_alphabet, outcome_map, outcome_list), fn)
     fn.close()
     
+    with ZipFile(os.path.join(working_dir, 'script.model'), 'w') as myzip:
+        myzip.write(os.path.join(working_dir, 'model_0.json'), 'model_0.json')
+        myzip.write(os.path.join(working_dir, 'model_0.h5'), 'model_0.h5')
+        myzip.write(os.path.join(working_dir, 'alphabets.pkl'), 'alphabets.pkl')
+        
     #print("This model has %d layers and layer 3 has %d weights" % (len(model.layers), len(model.layers[3].get_weights()) ) )
     #print("The weight of the first layer at index 50 is %f" % model.layers[3].get_weights()[50])
 

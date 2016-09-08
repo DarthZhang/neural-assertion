@@ -13,7 +13,7 @@ import cleartk_io as ctk_io
 #from models import get_mlp_optimizer, get_mlp_model
 import sys
 import os.path
-
+from zipfile import ZipFile
 
 def main(args):
     if len(args) < 1:
@@ -21,9 +21,12 @@ def main(args):
         sys.exit(-1)
 
     working_dir = args[0]
-
-    script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
-    (feature_alphabet, outcome_maps, outcome_list) = pickle.load( open(os.path.join(script_dir, 'alphabets.pkl'), 'r' ) )
+    with ZipFile(os.path.join(working_dir, 'script.model'), 'r') as myzip:
+        myzip.extract('model_0.json', working_dir)
+        myzip.extract('model_0.h5', working_dir)
+        myzip.extract('alphabets.pkl', working_dir)
+    
+    (feature_alphabet, outcome_maps, outcome_list) = pickle.load( open(os.path.join(working_dir, 'alphabets.pkl'), 'r' ) )
     reverse_outcome_maps = ctk_io.reverse_outcome_maps(outcome_maps)
     
     #raw_outcomes, outcome_maps, lookup_map = ctk_io.read_outcome_maps(working_dir)

@@ -14,7 +14,6 @@ import org.apache.ctakes.assertion.eval.AssertionEvaluation;
 import org.apache.ctakes.assertion.eval.AssertionEvaluation.ReferenceAnnotationsSystemAssertionClearer;
 import org.apache.ctakes.assertion.eval.AssertionEvaluation.ReferenceIdentifiedAnnotationsSystemToGoldCopier;
 import org.apache.ctakes.assertion.eval.XMIReader;
-import org.apache.ctakes.neural.KerasStringFeatureDataWriter;
 import org.apache.ctakes.neural.ScriptStringFeatureDataWriter;
 import org.apache.ctakes.typesystem.type.textsem.EntityMention;
 import org.apache.ctakes.typesystem.type.textsem.EventMention;
@@ -74,6 +73,12 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
         usage = "Run baseline individual systems rather than multi-task system",
         required = false)
     public boolean baseline=false;
+    
+    @Option(
+        name = "--data-dir",
+        usage = "Directory where training data should be written",
+        required=false)
+    public String dataDir = "target/models/neural";
   }
   
   public NeuralAssertionEvaluation(File baseDirectory) {
@@ -85,7 +90,7 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
     CmdLineParser parser = new CmdLineParser(options);
     parser.parseArgument(args);
 
-    File neuralDir = new File("target/models/neural");
+    File neuralDir = new File(options.dataDir);
     File configDir = new File(neuralDir, options.baseline ? "singletask" : "multitask");
     NeuralAssertionEvaluation eval = new NeuralAssertionEvaluation(configDir);
 
@@ -172,7 +177,7 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
             CleartkAnnotator.PARAM_IS_TRAINING,
             true,
             DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
-            KerasStringFeatureDataWriter.class,
+            ScriptStringFeatureDataWriter.class,
             DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
             new File(directory, atts[0]),
             ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
@@ -182,7 +187,7 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
             CleartkAnnotator.PARAM_IS_TRAINING,
             true,
             DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
-            KerasStringFeatureDataWriter.class,
+            ScriptStringFeatureDataWriter.class,
             DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
             new File(directory, atts[1]),
             ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
@@ -192,7 +197,7 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
             CleartkAnnotator.PARAM_IS_TRAINING,
             true,
             DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
-            KerasStringFeatureDataWriter.class,
+            ScriptStringFeatureDataWriter.class,
             DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
             new File(directory, atts[2]),
             ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
@@ -202,7 +207,7 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
             CleartkAnnotator.PARAM_IS_TRAINING,
             true,
             DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
-            KerasStringFeatureDataWriter.class,
+            ScriptStringFeatureDataWriter.class,
             DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
             new File(directory, atts[3]),
             ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
@@ -212,7 +217,7 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
             CleartkAnnotator.PARAM_IS_TRAINING,
             true,
             DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
-            KerasStringFeatureDataWriter.class,
+            ScriptStringFeatureDataWriter.class,
             DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
             new File(directory, atts[4]),
             ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
@@ -222,7 +227,7 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
             CleartkAnnotator.PARAM_IS_TRAINING,
             true,
             DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
-            KerasStringFeatureDataWriter.class,
+            ScriptStringFeatureDataWriter.class,
             DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
             new File(directory, atts[5]),
             ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
@@ -233,7 +238,7 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
             CleartkAnnotator.PARAM_IS_TRAINING,
             true,
             DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
-            KerasStringFeatureDataWriter.class,
+            ScriptStringFeatureDataWriter.class,
             DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
             directory,
             ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
