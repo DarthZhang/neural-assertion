@@ -31,7 +31,7 @@ def main(args):
     script_dir = args[1] # os.path.join(s.path.basename(working_dir) )
     
     print("Reading data...")
-    Y, label_alphabet, X, feature_alphabet = ctk_io.read_token_sequence_data(working_dir) # ('data_testing/multitask_assertion/train_and_test') 
+    Y, label_alphabet, X, feature_alphabet = ctk_io.read_token_sequence_data(working_dir)
     
     print("Shape of X is %s and Y is %s" % (str(X.shape), str(Y.shape)))
     
@@ -49,21 +49,18 @@ def main(args):
     Y_adj, indices = ctk_io.flatten_outputs(Y)
     out_counts = Y_adj.sum(0)
     
-    if Y_adj.shape[-1] > 1:
-        raw_weights = [1/out_counts[label] for label in range(len(out_counts))]
-    else:
-        one_counts = out_counts[0]
-        zero_counts = Y_adj.shape[0] - one_counts
-        print("%d zeros and %d ones" % (zero_counts, one_counts))
-        raw_weights = [1 / zero_counts, 1/one_counts]
+#    if Y_adj.shape[-1] > 1:
+#        raw_weights = [1/out_counts[label] for label in range(len(out_counts))]
+#    else:
+#        one_counts = out_counts[0]
+#        zero_counts = Y_adj.shape[0] - one_counts
+#        print("%d zeros and %d ones" % (zero_counts, one_counts))
+#        raw_weights = [1 / zero_counts, 1/one_counts]
     
-    norm = sum(raw_weights)
-    #class_weights = { label:1-(out_counts[label] / num_examples) for label in range(len(out_counts))}
-    
-    #class_weights = {1:1-(out_counts/num_examples), 0:1-(zero_counts/num_examples)}
-    class_weights = {ind:val/norm for ind,val in enumerate(raw_weights)}
+#    norm = sum(raw_weights)    
+#    class_weights = {ind:val/norm for ind,val in enumerate(raw_weights)}
         
-    print("Class weights=%s" % (class_weights) )
+#    print("Class weights=%s" % (class_weights) )
     
     stopper = nn_models.get_early_stopper()
     
