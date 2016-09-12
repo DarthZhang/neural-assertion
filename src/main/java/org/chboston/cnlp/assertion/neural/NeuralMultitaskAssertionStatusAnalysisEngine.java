@@ -50,12 +50,12 @@ public class NeuralMultitaskAssertionStatusAnalysisEngine extends
         int history = target.getHistoryOf();
         boolean conditional = target.getConditional();
 
-        String label = String.format("polarity=%d#uncertainty=%d#generic=%s#subject=%s#history=%d#conditional=%s", polarity, uncertainty, generic, subject, history, conditional);
+        String label = String.format("polarity=%d uncertainty=%d generic=%s subject=%s history=%d conditional=%s", polarity, uncertainty, generic, subject, history, conditional);
         instance.setOutcome(label);
         this.dataWriter.write(new Instance<>(label, feats));
       }else{
         String label = this.classifier.classify(feats);
-        String[] labels = label.split("#");
+        String[] labels = label.split(" ");
         int polarity = Integer.valueOf(labels[0].split("=")[1]);
         int uncertainty = Integer.valueOf(labels[1].split("=")[1]);
         boolean generic = Boolean.valueOf(labels[2].split("=")[1]);
