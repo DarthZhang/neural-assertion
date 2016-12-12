@@ -17,10 +17,10 @@ from zipfile import ZipFile
 
 nb_epoch = 20
 batch_size = 64
-filters = (64,)
-layers = (64,)
-embed_dim = 100
-width = 4
+filters = (512,)
+layers = (512,)
+embed_dim = 25
+widths = (3,)
 
 def main(args):
     if len(args) < 1:
@@ -60,7 +60,7 @@ def main(args):
         print("Dimensions of label %d are %s" % (i, str(y_list[-1].shape) ) )
 
     model = nn_models.get_multitask_cnn(X.shape, len(feature_alphabet), output_dims_list, conv_layers=filters, fc_layers=layers, 
-                                        embed_dim=embed_dim, filter_width=width)
+                                        embed_dim=embed_dim, filter_widths=widths)
     #model = nn_models.get_multitask_mlp(X.shape, len(feature_alphabet), output_dims_list, fc_layers=layers, embed_dim=embed_dim)
     
     model.fit(X, y_list,
@@ -88,6 +88,62 @@ def main(args):
         
     #print("This model has %d layers and layer 3 has %d weights" % (len(model.layers), len(model.layers[3].get_weights()) ) )
     #print("The weight of the first layer at index 50 is %f" % model.layers[3].get_weights()[50])
+
+def get_multitask_cnn(dimension, vocab_size, output_size_list, conv_layers = (64,), fc_layers = (64,), embed_dim=200, filter_widths=(3,) ):
+    input = Input(shape=(dimension[1],), dtype='int32', name='Main_Input')
+    
+    x = Embedding(input_dim=vocab_size, output_dim=embed_dim, input_length=dimension[1])(input)
+    
+    convs = []
+    for width in filter_widths:
+        conv = Convolution1D(conv_layers[0], width, activation='relu', init='uniform')(x)
+        pooled = Lambda(max_1d, output_shape=(conv_layers[0],))(conv)
+        convs.append(pooled)
+    
+    if len(convs) > 1:
+        x = Merge(mode='concat') (convs)
+    else:
+        x = convs[0]
+    
+    for nb_filter in conv_layers[1:]:
+        convs = []
+        for width in filter_widths:
+            conv = Convolution1D(nb_filter, filter_width, activation='relu', init='uniform')(x)    
+            pooled = Lambda(max_1d, output_shape=(nb_filter,))(conv)
+            convs.append(pooled)
+        
+        if len(convs) > 1:
+            x = Merge(mode='concat')(convs)
+        else:
+            x = convs[0]
+       
+    for num_nodes in fc_layers:
+        x = Dense(num_nodes, init='uniform')(x)
+        x = Activation('relu')(x)
+        x = Dropout(0.5)(x)
+    
+    outputs = []
+    losses = {}
+    loss_weights = {} ## don't do anything with these yet.
+    
+    for ind, output_size in enumerate(output_size_list):
+        out_name = "Output_%d" % ind
+        if output_size == 1:
+            output = Dense(1, activation='sigmoid', init='uniform', name=out_name)(x)
+            losses[out_name] = 'binary_crossentropy'
+            outputs.append( output )
+        else:
+            output = Dense(output_size, activation='softmax', init='uniform', name=out_name)(x)
+            
+            losses[out_name] = 'categorical_crossentropy'
+            outputs.append( output )
+    
+    sgd = get_mlp_optimizer()
+    model = Model(input=input, output = outputs)
+    model.compile(optimizer=sgd,
+                 loss=losses)
+    
+    return model
 
 if __name__ == "__main__":
     main(sys.argv[1:])
