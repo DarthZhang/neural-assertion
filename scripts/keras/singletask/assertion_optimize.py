@@ -31,7 +31,6 @@ def get_random_config():
     config['filters'] = random.choice(widths)
     
     return config
-end
 
 def run_one_eval(epochs, config, train_x, train_y, valid_x, valid_y, vocab_size, num_outputs):
     model = nn_models.get_cnn_model(train_x.shape, len(feature_alphabet), num_outputs, conv_layers=config['num_filters'], fc_layers=config['layers'], 
