@@ -4,15 +4,17 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation
 from keras.optimizers import SGD
 from keras.utils import np_utils
-#from sklearn.datasets import load_svmlight_file
+from sklearn.cross_validation import train_test_split
 import sklearn as sk
 import sklearn.cross_validation
 import numpy as np
 import cleartk_io as ctk_io
 import nn_models
+from random_search import RandomSearch
 import sys
 import os.path
 import pickle
+import random
 from zipfile import ZipFile
 
 batch_size = (32, 64, 128, 256, 512)
@@ -33,8 +35,9 @@ def get_random_config():
     return config
 
 def run_one_eval(epochs, config, train_x, train_y, valid_x, valid_y, vocab_size, num_outputs):
-    model = nn_models.get_cnn_model(train_x.shape, len(feature_alphabet), num_outputs, conv_layers=config['num_filters'], fc_layers=config['layers'], 
-                                        embed_dim=config['embed_dim'], filter_width=config['filters'])
+    print("Testing with config: %s" % (config) )
+    model = nn_models.get_cnn_model(train_x.shape, vocab_size, num_outputs, conv_layers=config['num_filters'], fc_layers=config['layers'], embed_dim=config['embed_dim'], filter_widths=config['filters'])
+    
     history = model.fit(train_x,
             train_y,
             nb_epoch=epochs,
@@ -66,7 +69,7 @@ def main(args):
     Y_adj, indices = ctk_io.flatten_outputs(Y_array)
     
     train_x, valid_x, train_y, valid_y = train_test_split(X_array, Y_array, test_size=0.2, random_state=18)
-    optim = RandomSearch(lambda: get_random_config(), lambda x, y: run_one_eval(x, y, train_x, train_y, valid_x, valid_y, len(feature_alphabet), len(label_alphabet) ) )
+    optim = RandomSearch(lambda: get_random_config(), lambda x, y: run_one_eval(x, y, train_x, train_y, valid_x, valid_y, len(feature_alphabet), num_outputs ) )
     best_config = optim.optimize()
 
     print("Best config: %s" % best_config)
