@@ -1,4 +1,4 @@
-from keras.models import Sequential, model_from_json
+from keras.models import Sequential, load_model
 from keras.layers import Dense, Dropout, Activation
 from keras.optimizers import SGD
 from keras.utils import np_utils
@@ -15,20 +15,18 @@ from zipfile import ZipFile
 
 def main(args):
     if len(args) < 1:
-        sys.stderr.write("Error - one required argument: <model directory> <pickle sub-directory>\n")
+        sys.stderr.write("Error - one required argument: <model directory>\n")
         sys.exit(-1)
 
     working_dir = args[0]
 
     with ZipFile(os.path.join(working_dir, 'script.model'), 'r') as myzip:
-        myzip.extract('model_0.json', working_dir)
-        myzip.extract('model_0.h5', working_dir)
+        myzip.extract('model.h5', working_dir)
         myzip.extract('alphabets.pkl', working_dir)
 
     (feature_alphabet, label_alphabet) = pickle.load( open(os.path.join(working_dir, 'alphabets.pkl'), 'r' ) )
     label_lookup = {val:key for (key,val) in label_alphabet.iteritems()}
-    model = model_from_json(open(os.path.join(working_dir, "model_0.json")).read())
-    model.load_weights(os.path.join(working_dir, "model_0.h5"))       
+    model = load_model(os.path.join(working_dir, "model.h5"))       
     
     input_seq_len = model.layers[0].input_shape[1]
 

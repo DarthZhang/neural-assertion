@@ -15,12 +15,12 @@ import os.path
 import pickle
 from zipfile import ZipFile
 
-nb_epoch = 20
-batch_size = 64
+nb_epoch = 80
+batch_size = 32
 filters = (2048,)
-layers = (2048,)
-embed_dim = 25
-width = 3
+layers = (64,)
+embed_dim = 50
+width = (2,3,4)
 
 def main(args):
     if len(args) < 1:
@@ -54,7 +54,7 @@ def main(args):
     stopper = nn_models.get_early_stopper()
     
     model = nn_models.get_cnn_model(X_array.shape, len(feature_alphabet), num_outputs, conv_layers=filters, fc_layers=layers, 
-                                        embed_dim=embed_dim, filter_width=width)
+                                        embed_dim=embed_dim, filter_widths=width)
 
     model.fit(X_array, Y_adj,
                   nb_epoch=nb_epoch,
@@ -65,19 +65,15 @@ def main(args):
                   #class_weight=class_weights)
                   
     model.summary()
-    
-    
-    json_string = model.to_json()
-    open(os.path.join(working_dir, 'model_0.json'), 'w').write(json_string)
-    model.save_weights(os.path.join(working_dir, 'model_0.h5'), overwrite=True)
-    
+        
+    model.save(os.path.join(working_dir, 'model.h5'), overwrite=True)
+        
     fn = open(os.path.join(working_dir, 'alphabets.pkl'), 'w')
     pickle.dump( (feature_alphabet, label_alphabet), fn)
     fn.close()
 
     with ZipFile(os.path.join(working_dir, 'script.model'), 'w') as myzip:
-        myzip.write(os.path.join(working_dir, 'model_0.json'), 'model_0.json')
-        myzip.write(os.path.join(working_dir, 'model_0.h5'), 'model_0.h5')
+        myzip.write(os.path.join(working_dir, 'model.h5'), 'model.h5')
         myzip.write(os.path.join(working_dir, 'alphabets.pkl'), 'alphabets.pkl')
 
 if __name__ == "__main__":
