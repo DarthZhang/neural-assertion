@@ -7,7 +7,6 @@ then
     . ~/.profile
 
     source $(dirname $0)/../../env/bin/activate
-    source $(dirname $0)../defs.h
 
     export PYTHONPATH=$PYTHONPATH:$(dirname $0)/../../:$CTAKES_NEURAL/scripts
 
@@ -18,7 +17,7 @@ then
     deactivate
 
 else
-    ret = ssh $GPU "/home/tmill/Projects/neural-assertion/scripts/keras/singletask/polarity/train.sh /home/tmill/mnt/hpc/Public/nlp/ch150151/ctakes-assertion/target/models/neural/singletask/train_and_test/polarity"
+    ret=`ssh $GPU "/home/tmill/Projects/neural-assertion/scripts/keras/singletask/polarity/train.sh /home/tmill/mnt/hpc/Public/nlp/ch150151/ctakes-assertion/target/models/neural/singletask/train_and_test/polarity"`
 fi
 
 exit $ret
