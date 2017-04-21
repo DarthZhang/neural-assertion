@@ -181,6 +181,7 @@ def split_entity_data(input_array, alphabet, input_shape=None):
                     
     ## Only need to pad X0 for this application -- maybe generalize in case of other use cases.
     ctk_io.pad_instances(X0)
+    ctk_io.pad_instances(X2)
     dimensions.append( (num_insts, max([len(x) for x in X0])))
     dimensions.append( (num_insts, max([len(x) for x in X1])))
     dimensions.append( (num_insts, max([len(x) for x in X2])))
