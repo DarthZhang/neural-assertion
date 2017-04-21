@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.ctakes.neural.feature.TokensSequenceWithWindowExtractor;
+import org.apache.ctakes.neural.feature.TokenSequenceWithConstrainedWindowExtractor;
 import org.apache.ctakes.typesystem.type.textsem.EntityMention;
 import org.apache.ctakes.typesystem.type.textsem.EventMention;
 import org.apache.ctakes.typesystem.type.textsem.IdentifiedAnnotation;
@@ -24,8 +24,8 @@ public class NeuralMultitaskAssertionStatusAnalysisEngine extends
   Logger logger = UIMAFramework.getLogger(NeuralMultitaskAssertionStatusAnalysisEngine.class);
 
   private final static int WINDOW_SIZE = 10;
-  private TokensSequenceWithWindowExtractor seqExtractor = new TokensSequenceWithWindowExtractor(WINDOW_SIZE);
-//  private TokenSequenceWithConstrainedWindowExtractor<IdentifiedAnnotation, Sentence> seqExtractor = new TokenSequenceWithConstrainedWindowExtractor<>(WINDOW_SIZE);
+//  private TokensSequenceWithWindowExtractor seqExtractor = new TokensSequenceWithWindowExtractor(WINDOW_SIZE);
+  private TokenSequenceWithConstrainedWindowExtractor<IdentifiedAnnotation, Sentence> seqExtractor = new TokenSequenceWithConstrainedWindowExtractor<>(WINDOW_SIZE);
     
   @Override
   public void process(JCas jCas) throws AnalysisEngineProcessException {
@@ -41,8 +41,8 @@ public class NeuralMultitaskAssertionStatusAnalysisEngine extends
 
         List<Feature> feats = new ArrayList<>();
 
-//        feats.addAll(this.seqExtractor.extract(jCas, target, sent));
-        feats.addAll(this.seqExtractor.extract(jCas, target));
+        feats.addAll(this.seqExtractor.extract(jCas, target, sent));
+//        feats.addAll(this.seqExtractor.extract(jCas, target));
         Instance<String> instance = new Instance<>(feats);
 
         if(this.isTraining()){
