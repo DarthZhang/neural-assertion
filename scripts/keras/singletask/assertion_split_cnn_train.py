@@ -39,7 +39,7 @@ def main(args):
     Y_array = np.array(Y)
     Y_adj, indices = ctk_io.flatten_outputs(Y_array)
     
-    model = get_split_cnn(dimensions, len(feature_alphabet), embed_dim, num_filters, layers)
+    model = get_split_cnn(dimensions, len(feature_alphabet), embed_dim, num_filters, layers, num_outputs = 1 if len(label_alphabet) <=2 else len(label_alphabet) )
     
     model.fit(X_segments, Y_adj,
                   nb_epoch=nb_epoch,
