@@ -1,15 +1,24 @@
 #!/bin/bash
 
-source $(dirname $0)/../../env/bin/activate
+source $(dirname $0)/../defs.sh
 
-export PYTHONPATH=$PYTHONPATH:$(dirname $0)/../../
+if [ -z "$GPU" ]
+then
+    . ~/.profile
 
-subdir=`dirname $0`
+    source $(dirname $0)/../../env/bin/activate
+    source $(dirname $0)../defs.h
 
-python $(dirname $0)/../assertion_train-and-package.py $* $subdir
+    export PYTHONPATH=$PYTHONPATH:$(dirname $0)/../../:$CTAKES_NEURAL/scripts
 
-ret=$?
+    python $(dirname $0)/../$TRAIN_SCRIPT $*
 
-deactivate
+    ret=$?
+
+    deactivate
+
+else
+    ret = ssh $GPU "/home/tmill/Projects/neural-assertion/scripts/keras/singletask/historyOf/train.sh /home/tmill/mnt/hpc/Public/nlp/ch150151/ctakes-assertion/target/models/neural/singletask/train_and_test/historyOf"
+fi
 
 exit $ret
