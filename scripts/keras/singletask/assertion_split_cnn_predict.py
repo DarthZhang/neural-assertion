@@ -1,7 +1,6 @@
 from keras.models import load_model
 import numpy as np
-import cleartk_io as ctk_io
-import nn_models
+import ctakesneural.io.cleartk_io as ctk_io
 import sys
 import os.path
 import pickle

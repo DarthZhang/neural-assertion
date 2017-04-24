@@ -9,13 +9,12 @@ from keras.utils import np_utils
 import sklearn as sk
 import sklearn.cross_validation
 import numpy as np
-import cleartk_io as ctk_io
-import nn_models
+import ctakesneural.io.cleartk_io as ctk_io
 import sys
 import os.path
 import pickle
 from zipfile import ZipFile
-from nn_models import max_1d, get_mlp_optimizer
+from ctakesneural.models.nn_models import max_1d, get_mlp_optimizer
 
 ## From no early stoping:
 ## Best config: {'layers': (2048,), 'embed_dim': 50, 'filters': (2, 3), 'batch_size': 64, 'num_filters': (256, 64, 32)}
