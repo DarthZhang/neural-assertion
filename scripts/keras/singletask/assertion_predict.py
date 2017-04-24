@@ -27,7 +27,7 @@ def main(args):
     (feature_alphabet, label_alphabet) = pickle.load( open(os.path.join(working_dir, 'alphabets.pkl'), 'r' ) )
     label_lookup = {val:key for (key,val) in label_alphabet.iteritems()}
     model = load_model(os.path.join(working_dir, "model.h5"))       
-    
+
     input_seq_len = model.layers[0].input_shape[1]
 
     while True:

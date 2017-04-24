@@ -53,9 +53,10 @@ def main(args):
         
     stopper = nn_models.get_early_stopper()
     
+    
     model = nn_models.get_cnn_model(X_array.shape, len(feature_alphabet), num_outputs, conv_layers=filters, fc_layers=layers, 
                                         embed_dim=embed_dim, filter_widths=width)
-
+    
     model.fit(X_array, Y_adj,
                   nb_epoch=nb_epoch,
                   batch_size=batch_size,

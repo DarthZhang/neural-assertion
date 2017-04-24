@@ -55,7 +55,8 @@ def main(args):
     filters = [x.filter_length for x in convs]
     nb_filters = (convs[0].nb_filter,)
     fc_widths = [x.output_dim for x in dense]
-    fc_widths.append(fc_widths[-1] //2)
+    #fc_widths.append(fc_widths[-1] //2)
+    fc_widths.append(fc_widths[-1])
     
     new_model = nn_models.get_cnn_model(model.layers[0].input_shape, model.layers[1].input_dim, model.layers[-1].output_dim, 
                               conv_layers=nb_filters, fc_layers=fc_widths, embed_dim=model.layers[1].output_dim, filter_widths=filters )

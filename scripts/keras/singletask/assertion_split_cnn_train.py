@@ -1,5 +1,6 @@
 #!#!/usr/bin/env python
 
+from keras.callbacks import EarlyStopping
 from keras.models import Sequential, Model
 from keras.layers import Input, Dense, Dropout, Activation, Embedding, Merge, Convolution1D, Lambda
 from keras.optimizers import SGD
@@ -14,14 +15,24 @@ import sys
 import os.path
 import pickle
 from zipfile import ZipFile
-from nn_models import max_1d, get_mlp_optimizer, get_early_stopper
+from nn_models import max_1d, get_mlp_optimizer
 
+## From no early stoping:
+## Best config: {'layers': (2048,), 'embed_dim': 50, 'filters': (2, 3), 'batch_size': 64, 'num_filters': (256, 64, 32)}
+#nb_epoch = 80
+#batch_size=64
+#num_filters=(256,64,32)
+#layers=(2048,)
+#embed_dim=50
+#width=(2,3)
+
+## These values from the results with early stopping enabled:
 nb_epoch = 80
 batch_size = 32
-num_filters = (128,128,128)
-layers = (64,)
+num_filters = (32,32,64)
+layers = (512,)
 embed_dim = 50
-width = (2,3,4)
+width = (3,)
 
 def main(args):
     if len(args) < 1:
@@ -59,6 +70,9 @@ def main(args):
     with ZipFile(os.path.join(working_dir, 'script.model'), 'w') as myzip:
         myzip.write(os.path.join(working_dir, 'model.h5'), 'model.h5')
         myzip.write(os.path.join(working_dir, 'alphabets.pkl'), 'alphabets.pkl')
+
+def get_early_stopper():
+    return EarlyStopping(monitor='val_loss', patience=2, verbose=0, mode='auto')
     
 def get_split_cnn(dimensions, vocab_size, embed_dim, conv_layers, fc_layers, num_outputs=1, filter_widths=(2,3,4)):
     ## Build model:
