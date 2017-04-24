@@ -1,11 +1,22 @@
 #!/bin/bash
 
-source $(dirname $0)/../env/bin/activate
+source defs.sh
 
-python $(dirname $0)/assertion_multitask_train-and-package.py $*
+if [ -z "$GPU" ]
+then
+    . ~/.profile
+    source $(dirname $0)/../env/bin/activate
 
-ret=$?
+    export PYTHONPATH=$PYTHONPATH:$CTAKES_NEURAL/scripts
 
-deactivate
+    python $(dirname $0)/../$TRAIN_SCRIPT $*
+
+    ret=$?
+
+    deactivate
+
+else
+    ret=`ssh $GPU "/home/tmill/Projects/neural-assertion/scripts/keras/multitask/train.sh /home/tmill/mnt/hpc/Public/nlp/ch150151/ctakes-assertion/target/models/neural/multitask/train_and_test/"`
+fi
 
 exit $ret

@@ -1,8 +1,12 @@
 #!/bin/bash
 
+source defs.sh
+
 source $(dirname $0)/../env/bin/activate
 
-python $(dirname $0)/assertion_multitask_predict.py $*
+export PYTHONPATH=$PYTHONPATH:$CTAKES_NEURAL/scripts
+
+python $(dirname $0)/../$PREDICT_SCRIPT $*
 
 ret=$?
 
