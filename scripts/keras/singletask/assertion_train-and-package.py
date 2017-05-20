@@ -8,8 +8,8 @@ from keras.utils import np_utils
 import sklearn as sk
 import sklearn.cross_validation
 import numpy as np
-import cleartk_io as ctk_io
-import nn_models
+from ctakesneural.io import cleartk_io as ctk_io
+from ctakesneural.models import nn_models
 import sys
 import os.path
 import pickle

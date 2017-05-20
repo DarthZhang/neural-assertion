@@ -14,3 +14,7 @@ hs_err_pid*
 *.pyc
 *.pkl
 /target/
+
+scripts/keras/env
+.settings
+
