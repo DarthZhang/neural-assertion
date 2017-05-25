@@ -8,9 +8,9 @@ then
 
     source $(dirname $0)/../../env/bin/activate
 
-    export PYTHONPATH=$PYTHONPATH:$(dirname $0)/../../:$CTAKES_NEURAL/scripts
+    export PYTHONPATH=$PYTHONPATH:$(dirname $0)/../:$CTAKES_NEURAL/scripts
 
-    python $(dirname $0)/../$TRAIN_SCRIPT $*
+    python $TRAIN_SCRIPT $*
 
     ret=$?
 

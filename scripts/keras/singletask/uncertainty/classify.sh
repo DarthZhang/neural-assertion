@@ -8,7 +8,7 @@ export PYTHONPATH=$PYTHONPATH:$CTAKES_NEURAL/scripts
 
 subdir=`dirname $0`
 
-python $(dirname $0)/../$PREDICT_SCRIPT $*
+python $PREDICT_SCRIPT $*
 
 ret=$?
 
