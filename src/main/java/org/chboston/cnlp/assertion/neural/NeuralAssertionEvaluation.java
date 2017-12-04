@@ -69,6 +69,12 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
     public boolean skipWrite=false;
     
     @Option(
+        name = "--write-only",
+        usage = "Skip training and testing and just write the data with the data writer (for running parameter sweeps on the server)",
+        required = false)
+    public boolean writeOnly=false;
+    
+    @Option(
         name = "--baseline",
         usage = "Run baseline individual systems rather than multi-task system",
         required = false)
@@ -114,6 +120,7 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
     }
 
     eval.baseline = options.baseline;
+    eval.writeOnly = options.writeOnly;
     
     List<File> testFiles = new ArrayList<>();
     testFiles = Arrays.asList(options.testDirectory.listFiles());
@@ -124,6 +131,11 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
     }
     
     Map<String, AnnotationStatisticsCompact<String>> stats = eval.trainAndTest(trainFiles, testFiles);
+    if(options.writeOnly){
+      System.out.println("No evaluation performed due to writeOnly flag");
+      return;
+    }
+    
     AssertionEvaluation.printScore(stats, configDir.getAbsolutePath());
     double f1_ave = (stats.get("polarity").f1("-1") +
         stats.get("uncertainty").f1("1") +
@@ -148,6 +160,7 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
   public boolean skipWrite = false;
   public boolean skipTrain = false;
   public boolean baseline = false;
+  public boolean writeOnly = false;
   private String[] atts= new String[] {"polarity", "uncertainty", "conditional", "generic", "historyOf", "subject"}; 
       
   @Override
@@ -248,6 +261,7 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
       // run the pipeline and write out the data
       SimplePipeline.runPipeline(collectionReader,  builder.createAggregateDescription());
     }
+    if(this.writeOnly) return;
     
     // call the classifier builder to build a classifier and then package it into a jar
     if(this.baseline){
@@ -264,6 +278,7 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
   protected Map<String, AnnotationStatisticsCompact<String>> test(
       CollectionReader collectionReader, File directory) throws Exception {
     Map<String,AnnotationStatisticsCompact<String>> stats = new HashMap<>();
+    if(this.writeOnly) return stats;
     AnnotationStatisticsCompact<String> polarityStats = new AnnotationStatisticsCompact<>();
     AnnotationStatisticsCompact<String> conditionalStats = new AnnotationStatisticsCompact<>();
     AnnotationStatisticsCompact<String> uncertaintyStats = new AnnotationStatisticsCompact<>();
