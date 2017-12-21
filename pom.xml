@@ -8,12 +8,12 @@
   	<dependency>
   		<groupId>org.apache.ctakes</groupId>
   		<artifactId>ctakes-assertion</artifactId>
-  		<version>3.2.2</version>
+  		<version>4.0.1-SNAPSHOT</version>
   	</dependency>
   	<dependency>
   		<groupId>org.apache.ctakes</groupId>
   		<artifactId>ctakes-type-system</artifactId>
-  		<version>3.2.2</version>
+  		<version>4.0.1-SNAPSHOT</version>
   	</dependency>
   	<dependency>
   		<groupId>org.cleartk</groupId>
@@ -33,23 +33,19 @@
   		<type>maven-plugin</type>
   	</dependency>
   	<dependency>
-  		<groupId>org.cleartk</groupId>
-  		<artifactId>cleartk-ml</artifactId>
-  	</dependency>
-  	<dependency>
   		<groupId>org.apache.ctakes</groupId>
   		<artifactId>ctakes-core</artifactId>
-  		<version>3.2.3-SNAPSHOT</version>
+  		<version>4.0.1-SNAPSHOT</version>
   	</dependency>
   	<dependency>
   		<groupId>org.apache.ctakes</groupId>
   		<artifactId>ctakes-neural</artifactId>
-  		<version>3.2.3-SNAPSHOT</version>
+  		<version>4.0.1-SNAPSHOT</version>
   	</dependency>
   </dependencies>
   <parent>
   	<groupId>org.apache.ctakes</groupId>
   	<artifactId>ctakes</artifactId>
-  	<version>3.2.2</version>
+  	<version>4.0.1-SNAPSHOT</version>
   </parent>
 </project>
