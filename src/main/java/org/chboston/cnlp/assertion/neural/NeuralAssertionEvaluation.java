@@ -84,7 +84,7 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
         name = "--data-dir",
         usage = "Directory where training data should be written",
         required=false)
-    public String dataDir = "target/models/neural";
+    public String dataDir = "target/models";
   }
   
   public NeuralAssertionEvaluation(File baseDirectory) {
