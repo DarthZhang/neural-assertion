@@ -1,13 +1,5 @@
 package org.chboston.cnlp.assertion.neural;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.ctakes.assertion.eval.AnnotationStatisticsCompact;
 import org.apache.ctakes.assertion.eval.AssertionEvaluation;
@@ -41,6 +33,9 @@ import org.cleartk.ml.jar.GenericJarClassifierFactory;
 import org.cleartk.ml.jar.JarClassifierBuilder;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
+
+import java.io.File;
+import java.util.*;
 
 public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<String, AnnotationStatisticsCompact<String>>> {
   public static class Options {
@@ -85,6 +80,12 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
         usage = "Directory where training data should be written",
         required=false)
     public String dataDir = "target/models";
+
+    @Option(
+        name = "--attributes",
+        usage = "Colon-separated string containing attributes to detect (default is all)",
+        required=false)
+    public String rawAttributes = "polarity:uncertainty:conditional:generic:historyOf:subject";
   }
   
   public NeuralAssertionEvaluation(File baseDirectory) {
@@ -99,6 +100,8 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
     File neuralDir = new File(options.dataDir);
     File configDir = new File(neuralDir, options.baseline ? "singletask" : "multitask");
     NeuralAssertionEvaluation eval = new NeuralAssertionEvaluation(configDir);
+
+    eval.attributes = new HashSet(Arrays.asList(options.rawAttributes.split(":")));
 
     List<File> trainFiles = new ArrayList<>();
     if(options.skipTrain){
@@ -161,8 +164,11 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
   public boolean skipTrain = false;
   public boolean baseline = false;
   public boolean writeOnly = false;
-  private String[] atts= new String[] {"polarity", "uncertainty", "conditional", "generic", "historyOf", "subject"}; 
-      
+  public Set<String> attributes = null;
+//  private String[] atts= new String[] {"polarity", "uncertainty", "conditional", "generic", "historyOf", "subject"};
+//  private String[] i2b2Atts= new String[] {"polarity", "uncertainty", "conditional", "subject"};
+//  private String[] atts = i2b2Atts;
+
   @Override
   protected CollectionReader getCollectionReader(List<File> items)
       throws Exception {
@@ -179,97 +185,108 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
 
   @Override
   protected void train(CollectionReader collectionReader, File directory)
-      throws Exception {
-    if(this.skipTrain) return;
-    
-    if(!this.skipWrite){
+          throws Exception {
+    if (this.skipTrain) return;
+
+    if (!this.skipWrite) {
       AggregateBuilder builder = new AggregateBuilder();
 
-      if(baseline){
-        builder.add(AnalysisEngineFactory.createEngineDescription(NeuralPolarityAnalysisEngine.class,
-            CleartkAnnotator.PARAM_IS_TRAINING,
-            true,
-            DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
-            ScriptStringFeatureDataWriter.class,
-            DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
-            new File(directory, atts[0]),
-            ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
-            "scripts/keras/singletask/" + atts[0]
-            ) );
-        builder.add(AnalysisEngineFactory.createEngineDescription(NeuralUncertaintyAnalysisEngine.class,
-            CleartkAnnotator.PARAM_IS_TRAINING,
-            true,
-            DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
-            ScriptStringFeatureDataWriter.class,
-            DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
-            new File(directory, atts[1]),
-            ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
-            "scripts/keras/singletask/" + atts[1]
-            ) );
-        builder.add(AnalysisEngineFactory.createEngineDescription(NeuralConditionalAnalysisEngine.class,
-            CleartkAnnotator.PARAM_IS_TRAINING,
-            true,
-            DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
-            ScriptStringFeatureDataWriter.class,
-            DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
-            new File(directory, atts[2]),
-            ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
-            "scripts/keras/singletask/" + atts[2]
-            ) );
-        builder.add(AnalysisEngineFactory.createEngineDescription(NeuralGenericAnalysisEngine.class,
-            CleartkAnnotator.PARAM_IS_TRAINING,
-            true,
-            DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
-            ScriptStringFeatureDataWriter.class,
-            DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
-            new File(directory, atts[3]),
-            ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
-            "scripts/keras/singletask/" + atts[3]
-            ) );
-        builder.add(AnalysisEngineFactory.createEngineDescription(NeuralHistoryOfAnalysisEngine.class,
-            CleartkAnnotator.PARAM_IS_TRAINING,
-            true,
-            DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
-            ScriptStringFeatureDataWriter.class,
-            DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
-            new File(directory, atts[4]),
-            ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
-            "scripts/keras/singletask/" + atts[4]
-            ) );
-        builder.add(AnalysisEngineFactory.createEngineDescription(NeuralSubjectAnalysisEngine.class,
-            CleartkAnnotator.PARAM_IS_TRAINING,
-            true,
-            DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
-            ScriptStringFeatureDataWriter.class,
-            DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
-            new File(directory, atts[5]),
-            ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
-            "scripts/keras/singletask/" + atts[5]
-            ) );
-      }else{
+      if (baseline) {
+        if (this.attributes.contains("polarity")) {
+          builder.add(AnalysisEngineFactory.createEngineDescription(NeuralPolarityAnalysisEngine.class,
+                  CleartkAnnotator.PARAM_IS_TRAINING,
+                  true,
+                  DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
+                  ScriptStringFeatureDataWriter.class,
+                  DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
+                  new File(directory, "polarity"),
+                  ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
+                  "scripts/keras/singletask/polarity"
+          ));
+        }
+        if(this.attributes.contains("uncertainty")) {
+          builder.add(AnalysisEngineFactory.createEngineDescription(NeuralUncertaintyAnalysisEngine.class,
+                  CleartkAnnotator.PARAM_IS_TRAINING,
+                  true,
+                  DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
+                  ScriptStringFeatureDataWriter.class,
+                  DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
+                  new File(directory, "uncertainty"),
+                  ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
+                  "scripts/keras/singletask/uncertainty"
+          ));
+        }
+        if(this.attributes.contains("conditional")) {
+          builder.add(AnalysisEngineFactory.createEngineDescription(NeuralConditionalAnalysisEngine.class,
+                  CleartkAnnotator.PARAM_IS_TRAINING,
+                  true,
+                  DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
+                  ScriptStringFeatureDataWriter.class,
+                  DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
+                  new File(directory, "conditional"),
+                  ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
+                  "scripts/keras/singletask/conditional"
+          ));
+        }
+        if(this.attributes.contains("generic")) {
+          builder.add(AnalysisEngineFactory.createEngineDescription(NeuralGenericAnalysisEngine.class,
+                  CleartkAnnotator.PARAM_IS_TRAINING,
+                  true,
+                  DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
+                  ScriptStringFeatureDataWriter.class,
+                  DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
+                  new File(directory, "generic"),
+                  ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
+                  "scripts/keras/singletask/generic"
+          ));
+        }
+        if(this.attributes.contains("historyOf")) {
+          builder.add(AnalysisEngineFactory.createEngineDescription(NeuralHistoryOfAnalysisEngine.class,
+                  CleartkAnnotator.PARAM_IS_TRAINING,
+                  true,
+                  DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
+                  ScriptStringFeatureDataWriter.class,
+                  DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
+                  new File(directory, "historyOf"),
+                  ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
+                  "scripts/keras/singletask/historyOf"
+          ));
+        }
+        if(this.attributes.contains("subject")) {
+          builder.add(AnalysisEngineFactory.createEngineDescription(NeuralSubjectAnalysisEngine.class,
+                  CleartkAnnotator.PARAM_IS_TRAINING,
+                  true,
+                  DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
+                  ScriptStringFeatureDataWriter.class,
+                  DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
+                  new File(directory, "subject"),
+                  ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
+                  "scripts/keras/singletask/subject"
+          ));
+        }
+      } else {
         builder.add(AnalysisEngineFactory.createEngineDescription(NeuralMultitaskAssertionStatusAnalysisEngine.class,
-            CleartkAnnotator.PARAM_IS_TRAINING,
-            true,
-            DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
-            ScriptStringFeatureDataWriter.class,
-            DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
-            directory,
-            ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
-            "scripts/keras/multitask/"
-            ) );
+                CleartkAnnotator.PARAM_IS_TRAINING,
+                true,
+                DefaultDataWriterFactory.PARAM_DATA_WRITER_CLASS_NAME,
+                ScriptStringFeatureDataWriter.class,
+                DirectoryDataWriterFactory.PARAM_OUTPUT_DIRECTORY,
+                directory,
+                ScriptStringFeatureDataWriter.PARAM_SCRIPT_DIR,
+                "scripts/keras/multitask/"
+        ));
       }
       // run the pipeline and write out the data
-      SimplePipeline.runPipeline(collectionReader,  builder.createAggregateDescription());
+      SimplePipeline.runPipeline(collectionReader, builder.createAggregateDescription());
     }
-    if(this.writeOnly) return;
-    
+    if (this.writeOnly) return;
+
     // call the classifier builder to build a classifier and then package it into a jar
-    if(this.baseline){
-      for(int i = 0; i < atts.length; i++){
-        String att = atts[i];
-        JarClassifierBuilder.trainAndPackage(new File(directory, att));
+    if (this.baseline) {
+      for (String attribute : attributes) {
+        JarClassifierBuilder.trainAndPackage(new File(directory, attribute));
       }
-    }else{
+    } else {
       JarClassifierBuilder.trainAndPackage(directory);
     }
   }
@@ -297,36 +314,48 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
     builder.add(assertionAttributeClearerAnnotator);
     
     if(this.baseline){
-      builder.add(AnalysisEngineFactory.createEngineDescription(NeuralPolarityAnalysisEngine.class,
-          CleartkAnnotator.PARAM_IS_TRAINING,
-          false,
-          GenericJarClassifierFactory.PARAM_CLASSIFIER_JAR_PATH,
-          new File(new File(directory, atts[0]), "model.jar").getPath()));
-      builder.add(AnalysisEngineFactory.createEngineDescription(NeuralUncertaintyAnalysisEngine.class,
-          CleartkAnnotator.PARAM_IS_TRAINING,
-          false,
-          GenericJarClassifierFactory.PARAM_CLASSIFIER_JAR_PATH,
-          new File(new File(directory, atts[1]), "model.jar").getPath()));
-      builder.add(AnalysisEngineFactory.createEngineDescription(NeuralConditionalAnalysisEngine.class,
-          CleartkAnnotator.PARAM_IS_TRAINING,
-          false,
-          GenericJarClassifierFactory.PARAM_CLASSIFIER_JAR_PATH,
-          new File(new File(directory, atts[2]), "model.jar").getPath()));
-      builder.add(AnalysisEngineFactory.createEngineDescription(NeuralGenericAnalysisEngine.class,
-          CleartkAnnotator.PARAM_IS_TRAINING,
-          false,
-          GenericJarClassifierFactory.PARAM_CLASSIFIER_JAR_PATH,
-          new File(new File(directory, atts[3]), "model.jar").getPath()));
-      builder.add(AnalysisEngineFactory.createEngineDescription(NeuralHistoryOfAnalysisEngine.class,
-          CleartkAnnotator.PARAM_IS_TRAINING,
-          false,
-          GenericJarClassifierFactory.PARAM_CLASSIFIER_JAR_PATH,
-          new File(new File(directory, atts[4]), "model.jar").getPath()));
-      builder.add(AnalysisEngineFactory.createEngineDescription(NeuralSubjectAnalysisEngine.class,
-          CleartkAnnotator.PARAM_IS_TRAINING,
-          false,
-          GenericJarClassifierFactory.PARAM_CLASSIFIER_JAR_PATH,
-          new File(new File(directory, atts[5]), "model.jar").getPath()));
+      if(this.attributes.contains("polarity")) {
+        builder.add(AnalysisEngineFactory.createEngineDescription(NeuralPolarityAnalysisEngine.class,
+                CleartkAnnotator.PARAM_IS_TRAINING,
+                false,
+                GenericJarClassifierFactory.PARAM_CLASSIFIER_JAR_PATH,
+                new File(new File(directory, "polarity"), "model.jar").getPath()));
+      }
+      if(this.attributes.contains("uncertainty")) {
+        builder.add(AnalysisEngineFactory.createEngineDescription(NeuralUncertaintyAnalysisEngine.class,
+                CleartkAnnotator.PARAM_IS_TRAINING,
+                false,
+                GenericJarClassifierFactory.PARAM_CLASSIFIER_JAR_PATH,
+                new File(new File(directory, "uncertainty"), "model.jar").getPath()));
+      }
+      if(this.attributes.contains("conditional")) {
+        builder.add(AnalysisEngineFactory.createEngineDescription(NeuralConditionalAnalysisEngine.class,
+                CleartkAnnotator.PARAM_IS_TRAINING,
+                false,
+                GenericJarClassifierFactory.PARAM_CLASSIFIER_JAR_PATH,
+                new File(new File(directory, "conditional"), "model.jar").getPath()));
+      }
+      if(this.attributes.contains("generic")) {
+        builder.add(AnalysisEngineFactory.createEngineDescription(NeuralGenericAnalysisEngine.class,
+                CleartkAnnotator.PARAM_IS_TRAINING,
+                false,
+                GenericJarClassifierFactory.PARAM_CLASSIFIER_JAR_PATH,
+                new File(new File(directory, "generic"), "model.jar").getPath()));
+      }
+      if(this.attributes.contains("historyOf")) {
+        builder.add(AnalysisEngineFactory.createEngineDescription(NeuralHistoryOfAnalysisEngine.class,
+                CleartkAnnotator.PARAM_IS_TRAINING,
+                false,
+                GenericJarClassifierFactory.PARAM_CLASSIFIER_JAR_PATH,
+                new File(new File(directory, "historyOf"), "model.jar").getPath()));
+      }
+      if(this.attributes.contains("subject")) {
+        builder.add(AnalysisEngineFactory.createEngineDescription(NeuralSubjectAnalysisEngine.class,
+                CleartkAnnotator.PARAM_IS_TRAINING,
+                false,
+                GenericJarClassifierFactory.PARAM_CLASSIFIER_JAR_PATH,
+                new File(new File(directory, "subject"), "model.jar").getPath()));
+      }
     }else{
       builder.add(AnalysisEngineFactory.createEngineDescription(NeuralMultitaskAssertionStatusAnalysisEngine.class,
           CleartkAnnotator.PARAM_IS_TRAINING,
@@ -356,13 +385,13 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
       addStats(historyStats, goldEntitiesAndEvents, systemEntitiesAndEvents, "historyOf");
     }
     casIter.collectionProcessComplete();
-    
-    stats.put("polarity",  polarityStats);
-    stats.put("conditional",  conditionalStats);
-    stats.put("uncertainty",  uncertaintyStats);
-    stats.put("subject", subjectStats);
-    stats.put("generic", genericStats);
-    stats.put("historyOf", historyStats);
+
+    if(this.attributes.contains("polarity")) stats.put("polarity",  polarityStats);
+    if(this.attributes.contains("conditional")) stats.put("conditional",  conditionalStats);
+    if(this.attributes.contains("uncertainty")) stats.put("uncertainty",  uncertaintyStats);
+    if(this.attributes.contains("subject")) stats.put("subject", subjectStats);
+    if(this.attributes.contains("generic")) stats.put("generic", genericStats);
+    if(this.attributes.contains("historyOf")) stats.put("historyOf", historyStats);
 
     return stats;
   }
