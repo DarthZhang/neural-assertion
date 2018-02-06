@@ -140,18 +140,18 @@ public class NeuralAssertionEvaluation extends Evaluation_ImplBase<File, Map<Str
     }
     
     AssertionEvaluation.printScore(stats, configDir.getAbsolutePath());
-    double f1_ave = (stats.get("polarity").f1("-1") +
-        stats.get("uncertainty").f1("1") +
-        stats.get("generic").f1("true") +
-        stats.get("conditional").f1("true") +
-        stats.get("historyOf").f1("1")) / 5.0;
-    
-    System.out.println(String.format("Polarity: %.3f",  stats.get("polarity").f1("-1")));
-    System.out.println(String.format("Uncertainty: %.3f", stats.get("uncertainty").f1("1")));
-    System.out.println(String.format("Generic: %.3f", stats.get("generic").f1("true")));
-    System.out.println(String.format("Conditional: %.3f", stats.get("conditional").f1("true")));
-    System.out.println(String.format("HistoryOf: %.3f", stats.get("historyOf").f1("1")));
-    System.out.println(String.format("Macro-f: %.3f\n " , f1_ave));
+//    double f1_ave = (stats.get("polarity").f1("-1") +
+//        stats.get("uncertainty").f1("1") +
+//        stats.get("generic").f1("true") +
+//        stats.get("conditional").f1("true") +
+//        stats.get("historyOf").f1("1")) / 5.0;
+
+    if(eval.attributes.contains("polarity")) System.out.println(String.format("Polarity: %.3f",  stats.get("polarity").f1("-1")));
+    if(eval.attributes.contains("uncertainty")) System.out.println(String.format("Uncertainty: %.3f", stats.get("uncertainty").f1("1")));
+    if(eval.attributes.contains("generic")) System.out.println(String.format("Generic: %.3f", stats.get("generic").f1("true")));
+    if(eval.attributes.contains("conditional")) System.out.println(String.format("Conditional: %.3f", stats.get("conditional").f1("true")));
+    if(eval.attributes.contains("historyOf")) System.out.println(String.format("HistoryOf: %.3f", stats.get("historyOf").f1("1")));
+//    System.out.println(String.format("Macro-f: %.3f\n " , f1_ave));
     
 //    for(Map.Entry<String, AnnotationStatisticsCompact<String>> stat : stats.entrySet()){
 //      System.out.println(stat.getKey());
